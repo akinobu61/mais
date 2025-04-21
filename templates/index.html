@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}暗号化URL生成サービス - ホーム{% endblock %}
+
+{% block content %}
+<div class="url-form-container">
+    <h2>安全なURLを生成</h2>
+    <p class="description">元のURLを暗号化し、短縮されたリンクを生成します。</p>
+    
+    {% if error %}
+    <div class="error-message">
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+    
+    <form action="{{ url_for('create_short_url') }}" method="post" class="url-form">
+        <div class="form-group">
+            <label for="url">元のURL:</label>
+            <input type="text" id="url" name="url" placeholder="https://example.com" required>
+        </div>
+        <button type="submit" class="btn-generate">URLを生成</button>
+    </form>
+    
+    <div class="features">
+        <div class="feature">
+            <h3>暗号化</h3>
+            <p>URLは安全なアルゴリズムで暗号化されます</p>
+        </div>
+        <div class="feature">
+            <h3>短縮化</h3>
+            <p>TinyURLを利用して短いリンクも生成します</p>
+        </div>
+        <div class="feature">
+            <h3>安全</h3>
+            <p>元のURLは安全に保管されます</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
