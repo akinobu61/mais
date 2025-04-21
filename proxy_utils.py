@@ -1,88 +1,11 @@
-import requests
 import logging
-import base64
-import hashlib
-from urllib.parse import urljoin, urlparse, quote, unquote
+import requests
+from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)
 
 # Timeout for HTTP requests (in seconds)
 REQUEST_TIMEOUT = 10
-
-# Secret key for URL encoding/decoding (keep this secure in a production environment)
-URL_ENCODING_KEY = "mySecretKey123"  # In production, this should be in environment variables
-
-def encode_url(original_url):
-    """
-    Encodes a URL using a custom algorithm to create a shorter representation.
-    
-    Args:
-        original_url (str): The original URL to encode
-        
-    Returns:
-        str: The encoded URL string
-    """
-    # First, URL-quote the original URL to handle special characters
-    safe_url = quote(original_url)
-    
-    # Create a simple encoding by using base64 
-    encoded = base64.urlsafe_b64encode(safe_url.encode()).decode()
-    
-    # Remove padding characters (=) as they're not URL-safe
-    encoded = encoded.rstrip("=")
-    
-    # Add a simple hash for validation (first 8 chars of the sha256 hash)
-    hash_signature = hashlib.sha256((encoded + URL_ENCODING_KEY).encode()).hexdigest()[:8]
-    
-    # Combine the hash and encoded string
-    result = f"{hash_signature}{encoded}"
-    
-    logger.debug(f"Encoded URL '{original_url}' to '{result}'")
-    return result
-
-def decode_url(encoded_id):
-    """
-    Decodes an encoded URL ID back to its original URL.
-    
-    Args:
-        encoded_id (str): The encoded URL identifier
-        
-    Returns:
-        str: The decoded original URL or None if decoding fails
-    """
-    try:
-        if len(encoded_id) < 8:
-            logger.error(f"Invalid encoded ID (too short): {encoded_id}")
-            return None
-            
-        # Extract the hash and encoded parts
-        hash_part = encoded_id[:8]
-        encoded_part = encoded_id[8:]
-        
-        # Validate the hash
-        calculated_hash = hashlib.sha256((encoded_part + URL_ENCODING_KEY).encode()).hexdigest()[:8]
-        if calculated_hash != hash_part:
-            logger.error(f"Hash validation failed for encoded ID: {encoded_id}")
-            return None
-        
-        # Add padding back if needed
-        padding_needed = len(encoded_part) % 4
-        if padding_needed:
-            encoded_part += "=" * (4 - padding_needed)
-        
-        # Decode the base64 part
-        decoded_bytes = base64.urlsafe_b64decode(encoded_part)
-        safe_url = decoded_bytes.decode()
-        
-        # URL-unquote to get the original URL
-        original_url = unquote(safe_url)
-        
-        logger.debug(f"Decoded ID '{encoded_id}' to URL '{original_url}'")
-        return original_url
-        
-    except Exception as e:
-        logger.exception(f"Error decoding URL ID: {str(e)}")
-        return None
 
 def fetch_content(url):
     """
@@ -94,23 +17,25 @@ def fetch_content(url):
     Returns:
         tuple: (content, status_code, content_type)
     """
-    logger.debug(f"Fetching content from: {url}")
-    
     try:
-        response = requests.get(
-            url, 
-            timeout=REQUEST_TIMEOUT,
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        )
+        # Set up headers to mimic a browser
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+        }
         
-        # Return the response content, status code and content type
-        return response.content, response.status_code, response.headers.get('Content-Type')
-            
-    except requests.exceptions.RequestException as e:
-        logger.exception(f"Error fetching content: {str(e)}")
-        return str(e).encode('utf-8'), 500, 'text/plain'
+        # Make the request
+        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT, allow_redirects=True)
+        
+        # Get content type from headers
+        content_type = response.headers.get('Content-Type', 'text/html')
+        
+        return response.content, response.status_code, content_type
+    
+    except Exception as e:
+        logger.exception(f"Error fetching content from {url}: {str(e)}")
+        return f"Error fetching content: {str(e)}".encode(), 500, 'text/plain'
 
 def get_proxy_url(original_url, base_domain, target_url):
     """
@@ -124,6 +49,8 @@ def get_proxy_url(original_url, base_domain, target_url):
     Returns:
         str: The proxied URL
     """
+    from url_crypto import encode_url
+    
     # If it's a relative URL, make it absolute first
     if not target_url.startswith(('http://', 'https://')):
         target_url = urljoin(original_url, target_url)

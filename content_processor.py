@@ -1,6 +1,7 @@
 import logging
-from bs4 import BeautifulSoup
+import re
 from urllib.parse import urljoin
+from bs4 import BeautifulSoup
 from proxy_utils import get_proxy_url
 
 logger = logging.getLogger(__name__)
@@ -18,55 +19,32 @@ def process_content(content, original_url, base_domain):
         bytes: The processed HTML content
     """
     try:
-        # Parse the HTML content
+        # Parse the content with BeautifulSoup
         soup = BeautifulSoup(content, 'html.parser')
         
-        # Process links (<a> tags)
+        # Process links (a tags)
         for a_tag in soup.find_all('a', href=True):
             a_tag['href'] = get_proxy_url(original_url, base_domain, a_tag['href'])
-        
-        # Process form actions
-        for form in soup.find_all('form', action=True):
-            form['action'] = get_proxy_url(original_url, base_domain, form['action'])
-        
+            
         # Process CSS links
-        for link in soup.find_all('link', rel='stylesheet', href=True):
-            link['href'] = get_proxy_url(original_url, base_domain, link['href'])
-        
-        # Process script sources
-        for script in soup.find_all('script', src=True):
-            script['src'] = get_proxy_url(original_url, base_domain, script['src'])
-        
+        for link_tag in soup.find_all('link', href=True):
+            link_tag['href'] = get_proxy_url(original_url, base_domain, link_tag['href'])
+            
         # Process images
-        for img in soup.find_all('img', src=True):
-            img['src'] = get_proxy_url(original_url, base_domain, img['src'])
+        for img_tag in soup.find_all('img', src=True):
+            img_tag['src'] = get_proxy_url(original_url, base_domain, img_tag['src'])
+            
+        # Process scripts
+        for script_tag in soup.find_all('script', src=True):
+            script_tag['src'] = get_proxy_url(original_url, base_domain, script_tag['src'])
+            
+        # Process form actions
+        for form_tag in soup.find_all('form', action=True):
+            form_tag['action'] = get_proxy_url(original_url, base_domain, form_tag['action'])
         
-        # Process iframe sources
-        for iframe in soup.find_all('iframe', src=True):
-            iframe['src'] = get_proxy_url(original_url, base_domain, iframe['src'])
-        
-        # Add base tag to ensure all relative URLs are resolved correctly
-        head = soup.find('head')
-        if head:
-            # Check if base tag already exists
-            base_tag = head.find('base')
-            if base_tag:
-                base_tag['href'] = original_url
-            else:
-                new_base = soup.new_tag('base', href=original_url)
-                head.insert(0, new_base)
-        
-        # Add proxy information in a hidden div (helpful for debugging)
-        info_div = soup.new_tag('div', style='display:none;')
-        info_div['id'] = 'proxy-info'
-        info_div['data-original-url'] = original_url
-        if soup.body:
-            soup.body.append(info_div)
-        
-        # Return the modified HTML
-        return str(soup).encode('utf-8')
+        # Return the modified content
+        return str(soup).encode()
     
     except Exception as e:
-        logger.exception(f"Error processing HTML content: {str(e)}")
-        # Return the original content if processing fails
-        return content
+        logger.exception(f"Error processing content: {str(e)}")
+        return content  # Return original content on error

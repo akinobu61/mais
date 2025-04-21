@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, url_for, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 import pyshorteners
@@ -30,6 +30,8 @@ db.init_app(app)
 
 # Import URL encryption utilities
 from url_crypto import encode_url, decode_url
+# Import proxy utilities
+from proxy_utils import fetch_content, get_proxy_url
 # Import database models
 with app.app_context():
     from models import URLMapping
@@ -94,13 +96,17 @@ def create_short_url():
         return render_template('index.html', error=f'エラーが発生しました: {str(e)}')
 
 @app.route('/<path:encoded_id>', methods=['GET'])
-def show_encoded_url(encoded_id):
-    """Show encoded URL information without redirecting"""
+def proxy_content(encoded_id):
+    """Proxy content through encoded URLs"""
     try:
         # Check if this is a create route
         if encoded_id == 'create':
             return redirect(url_for('index'))
             
+        # Get query parameters
+        query_string = request.query_string.decode() if request.query_string else ""
+        query_appendix = f"?{query_string}" if query_string else ""
+        
         # Check if the encoded ID exists in our database
         url_mapping = URLMapping.query.filter_by(encoded_id=encoded_id).first()
         
@@ -109,24 +115,60 @@ def show_encoded_url(encoded_id):
             url_mapping.access_count += 1
             db.session.commit()
             
-            # Show URL info without redirecting
-            return render_template('url_info.html', 
-                                  url_mapping=url_mapping, 
-                                  encoded_url=request.host_url + encoded_id)
+            # Use the original URL from the database
+            original_url = url_mapping.original_url
+            
+            # Add query string if it exists
+            if query_appendix:
+                original_url = f"{original_url}{query_appendix}"
+                
+            # Fetch and proxy the content
+            content, status_code, content_type = fetch_content(original_url)
+            
+            if status_code >= 400:
+                logger.error(f"Error fetching content: {status_code}")
+                return render_template('error.html', message=f'コンテンツの取得中にエラーが発生しました: HTTP {status_code}'), status_code
+                
+            # Process content if it's HTML (replace links with proxied versions)
+            if content_type and 'text/html' in content_type:
+                from content_processor import process_content
+                content = process_content(content, original_url, request.host_url)
+                
+            # Return the proxied content with the appropriate content type
+            response = Response(content)
+            if content_type:
+                response.headers['Content-Type'] = content_type
+            return response
         
         # If not in database, try to decode it directly
         original_url = decode_url(encoded_id)
         if original_url:
-            # Show decoded URL info without redirecting
-            return render_template('decoded_info.html', 
-                                  original_url=original_url, 
-                                  encoded_id=encoded_id,
-                                  encoded_url=request.host_url + encoded_id)
+            # Add query string if it exists
+            if query_appendix:
+                original_url = f"{original_url}{query_appendix}"
+                
+            # Fetch and proxy the content
+            content, status_code, content_type = fetch_content(original_url)
+            
+            if status_code >= 400:
+                logger.error(f"Error fetching content: {status_code}")
+                return render_template('error.html', message=f'コンテンツの取得中にエラーが発生しました: HTTP {status_code}'), status_code
+                
+            # Process content if it's HTML (replace links with proxied versions)
+            if content_type and 'text/html' in content_type:
+                from content_processor import process_content
+                content = process_content(content, original_url, request.host_url)
+                
+            # Return the proxied content with the appropriate content type
+            response = Response(content)
+            if content_type:
+                response.headers['Content-Type'] = content_type
+            return response
         
         return render_template('error.html', message='無効なURLまたはリンクが見つかりません'), 404
         
     except Exception as e:
-        logger.exception(f"Error displaying URL info: {str(e)}")
+        logger.exception(f"Error proxying content: {str(e)}")
         return render_template('error.html', message=f'エラーが発生しました: {str(e)}'), 500
 
 @app.route('/api/encode', methods=['POST'])
