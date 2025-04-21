@@ -59,11 +59,15 @@ def create_short_url():
         # Check if this URL has already been encoded
         existing_mapping = URLMapping.query.filter_by(original_url=original_url).first()
         if existing_mapping:
-            # Get the TinyURL shortened version
-            tiny_url = shortener.tinyurl.short(request.host_url + existing_mapping.encoded_id)
+            # Generate proxy URL (the encrypted URL)
+            proxy_url = request.host_url + existing_mapping.encoded_id
+            
+            # Get the TinyURL shortened version of the proxy URL
+            tiny_url = shortener.tinyurl.short(proxy_url)
+            
             return render_template('result.html', 
                                    original_url=original_url,
-                                   encoded_url=request.host_url + existing_mapping.encoded_id,
+                                   proxy_url=proxy_url,
                                    tiny_url=tiny_url)
         
         # Encode the URL
@@ -74,12 +78,15 @@ def create_short_url():
         db.session.add(url_mapping)
         db.session.commit()
         
-        # Get the TinyURL shortened version
-        tiny_url = shortener.tinyurl.short(request.host_url + encoded_id)
+        # Generate proxy URL (the encrypted URL)
+        proxy_url = request.host_url + encoded_id
+        
+        # Get the TinyURL shortened version of the proxy URL
+        tiny_url = shortener.tinyurl.short(proxy_url)
         
         return render_template('result.html', 
                                original_url=original_url,
-                               encoded_url=request.host_url + encoded_id,
+                               proxy_url=proxy_url,
                                tiny_url=tiny_url)
         
     except Exception as e:
@@ -127,10 +134,16 @@ def api_encode_url():
         # Check if this URL has already been encoded
         existing_mapping = URLMapping.query.filter_by(original_url=url).first()
         if existing_mapping:
+            # Generate proxy URL (the encrypted URL)
+            proxy_url = request.host_url + existing_mapping.encoded_id
+            
+            # Get the TinyURL shortened version of the proxy URL
+            tiny_url = shortener.tinyurl.short(proxy_url)
+            
             return jsonify({
                 'original_url': url,
-                'encoded_url': request.host_url + existing_mapping.encoded_id,
-                'tiny_url': shortener.tinyurl.short(request.host_url + existing_mapping.encoded_id)
+                'proxy_url': proxy_url,
+                'tiny_url': tiny_url
             })
         
         # Encode the URL
@@ -141,11 +154,17 @@ def api_encode_url():
         db.session.add(url_mapping)
         db.session.commit()
         
+        # Generate proxy URL (the encrypted URL)
+        proxy_url = request.host_url + encoded_id
+        
+        # Get the TinyURL shortened version of the proxy URL
+        tiny_url = shortener.tinyurl.short(proxy_url)
+        
         # Return the encoded URL
         return jsonify({
             'original_url': url,
-            'encoded_url': request.host_url + encoded_id,
-            'tiny_url': shortener.tinyurl.short(request.host_url + encoded_id)
+            'proxy_url': proxy_url,
+            'tiny_url': tiny_url
         })
         
     except Exception as e:
