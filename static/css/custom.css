@@ -1,0 +1,27 @@
+/* Basic styling for error pages */
+.error-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: var(--bs-secondary-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.error-title {
+    color: var(--bs-danger);
+    margin-bottom: 20px;
+}
+
+.error-message {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+.error-details {
+    background-color: var(--bs-tertiary-bg);
+    padding: 15px;
+    border-radius: 4px;
+    font-family: monospace;
+    overflow-x: auto;
+}
