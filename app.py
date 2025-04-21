@@ -15,7 +15,26 @@ def create_short_url():
     url = request.form.get('url')
     if not url:
         return render_template('error.html', message='URLを入力してください')
-    return render_template('result.html', tiny_url=url)
+    
+    # URLにスキームがない場合は追加
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        
+    from src.mais.url_crypto import encode_url
+    encoded_id = encode_url(url)
+    if not encoded_id:
+        return render_template('error.html', message='URLの暗号化に失敗しました')
+    
+    proxy_url = request.host_url + encoded_id
+    return render_template('result.html', tiny_url=proxy_url, original_url=url)
+
+@app.route('/<encoded_id>')
+def redirect_to_url(encoded_id):
+    from src.mais.url_crypto import decode_url
+    original_url = decode_url(encoded_id)
+    if not original_url:
+        return render_template('error.html', message='無効なURLです')
+    return redirect(original_url)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
