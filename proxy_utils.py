@@ -21,52 +21,22 @@ def resolve_tinyurl(tiny_url_id):
     logger.debug(f"Resolving TinyURL: {tinyurl}")
     
     try:
-        # Use GET instead of HEAD, as some servers block HEAD requests
-        # Set a user agent to mimic a browser
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Connection': 'keep-alive'
-        }
-        
-        # Use a session to handle redirects properly
-        session = requests.Session()
-        
-        # First, try to do a GET request with stream=True to not download the full content
-        response = session.get(
+        # We don't want to download the content yet, just resolve the URL
+        response = requests.head(
             tinyurl, 
             allow_redirects=True,
-            timeout=REQUEST_TIMEOUT,
-            headers=headers,
-            stream=True
+            timeout=REQUEST_TIMEOUT
         )
         
         # If we got redirected, return the final URL
         if response.status_code == 200:
-            # Close the response to free up resources
-            response.close()
             return response.url
         else:
-            # If the response is not 200, log the error and return None
             logger.error(f"Failed to resolve TinyURL. Status code: {response.status_code}")
-            response.close()
-            
-            # For testing purposes, if we get a 403, let's return a test URL instead
-            # This is a temporary solution that should be removed in production
-            if tiny_url_id == "53cskubj":
-                return "https://example.com/"
-            
             return None
             
     except requests.exceptions.RequestException as e:
         logger.exception(f"Error resolving TinyURL: {str(e)}")
-        
-        # For testing purposes, if we get an error with specific IDs, return a test URL
-        # This is a temporary solution that should be removed in production
-        if tiny_url_id == "53cskubj":
-            return "https://example.com/"
-        
         return None
 
 def fetch_content(url):

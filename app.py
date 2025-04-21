@@ -1,7 +1,8 @@
 import os
 import logging
-import requests
 from flask import Flask, request, Response
+from proxy_utils import resolve_tinyurl, fetch_content
+from content_processor import process_content
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -19,46 +20,42 @@ def proxy_tinyurl(tiny_url_id):
     """
     logger.debug(f"Received request for tiny URL ID: {tiny_url_id}")
     
+    # If the URL contains query parameters, extract and keep them
+    query_string = request.query_string.decode() if request.query_string else ""
+    query_appendix = f"?{query_string}" if query_string else ""
+    
     try:
-        # For testing and debugging purposes
-        if tiny_url_id == "53cskubj":
-            # Direct proxy to example.com as a test case
-            original_url = "https://example.com/"
-        elif tiny_url_id.startswith("_assets/"):
-            # Handle resource paths directly
-            return f"Resource paths are not directly supported: {tiny_url_id}", 400
-        else:
-            # Resolve TinyURL (but skip the actual resolver because of Cloudflare blocking)
-            logger.debug(f"Using test URL for {tiny_url_id} due to Cloudflare restrictions")
-            return f"TinyURL ID not supported for testing: {tiny_url_id}", 404
+        # Resolve the TinyURL to get the original URL
+        original_url = resolve_tinyurl(tiny_url_id)
+        if not original_url:
+            logger.error(f"Failed to resolve TinyURL for ID: {tiny_url_id}")
+            return "Failed to resolve the TinyURL. The link might be invalid or no longer available.", 404
         
-        logger.debug(f"Fetching content from: {original_url}")
+        logger.debug(f"Resolved to original URL: {original_url}")
         
-        # Directly fetch the content without any processing
-        response = requests.get(
-            original_url,
-            timeout=10,
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml',
-                'Accept-Language': 'en-US,en;q=0.9'
-            }
-        )
-        
-        # Check for errors
-        if response.status_code >= 400:
-            logger.error(f"Error fetching content: {response.status_code}")
-            return f"Error fetching content: HTTP {response.status_code}", response.status_code
+        # Add query parameters if they exist
+        if query_appendix:
+            original_url = f"{original_url}{query_appendix}"
             
-        # Create response with the original content
-        proxy_response = Response(response.content)
+        # Fetch the content from the original URL
+        content, status_code, content_type = fetch_content(original_url)
         
-        # Copy important headers from the original response
-        for header in ['Content-Type', 'Content-Length']:
-            if header in response.headers:
-                proxy_response.headers[header] = response.headers[header]
-                
-        return proxy_response
+        if status_code >= 400:
+            logger.error(f"Error fetching content: {status_code}")
+            return f"Error fetching content: HTTP {status_code}", status_code
+            
+        # Process content if it's HTML
+        if content_type and 'text/html' in content_type:
+            content = process_content(content, original_url, request.host_url)
+        
+        # Create response with appropriate headers
+        response = Response(content)
+        
+        # Set content type if available
+        if content_type:
+            response.headers['Content-Type'] = content_type
+            
+        return response
         
     except Exception as e:
         logger.exception(f"Error processing request: {str(e)}")
