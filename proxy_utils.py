@@ -1,6 +1,5 @@
 import requests
 import logging
-import pyshorteners
 from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)
@@ -10,7 +9,7 @@ REQUEST_TIMEOUT = 10
 
 def resolve_tinyurl(short_url_id):
     """
-    Resolves a shortened URL ID to its original URL using pyshorteners.
+    Resolves a shortened URL ID to its original URL using direct HTTP requests.
     
     Args:
         short_url_id (str): The shortened URL identifier
@@ -23,19 +22,27 @@ def resolve_tinyurl(short_url_id):
     logger.debug(f"Resolving URL: {short_url}")
     
     try:
-        # Use pyshorteners to expand the short URL
-        shortener = pyshorteners.Shortener()
-        expanded_url = shortener.isgd.expand(short_url)
+        # Just do a HEAD request with allow_redirects=True to follow redirects
+        # This is more reliable than using pyshorteners for expansion
+        response = requests.head(
+            short_url,
+            allow_redirects=True,
+            timeout=REQUEST_TIMEOUT,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        )
         
-        if expanded_url:
-            logger.debug(f"Successfully expanded URL to: {expanded_url}")
-            return expanded_url
+        # If the status code is successful (2xx), return the final URL after redirects
+        if 200 <= response.status_code < 300:
+            logger.debug(f"Successfully expanded URL to: {response.url}")
+            return response.url
         else:
-            logger.error(f"Failed to resolve URL: {short_url}")
+            logger.error(f"Failed to resolve URL: {short_url}, status code: {response.status_code}")
             return None
             
-    except Exception as e:
-        logger.exception(f"Error resolving URL with pyshorteners: {str(e)}")
+    except requests.exceptions.RequestException as e:
+        logger.exception(f"Error resolving URL: {str(e)}")
         return None
 
 def fetch_content(url):
