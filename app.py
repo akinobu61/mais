@@ -25,8 +25,15 @@ def create_short_url():
     if not encoded_id:
         return render_template('error.html', message='URLの暗号化に失敗しました')
     
+    import pyshorteners
+    
     proxy_url = request.host_url + encoded_id
-    return render_template('result.html', tiny_url=proxy_url, original_url=url)
+    
+    # TinyURLで短縮
+    s = pyshorteners.Shortener()
+    tiny_url = s.tinyurl.short(proxy_url)
+    
+    return render_template('result.html', tiny_url=tiny_url, original_url=url)
 
 @app.route('/<encoded_id>')
 def redirect_to_url(encoded_id):
