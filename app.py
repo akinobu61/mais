@@ -64,75 +64,8 @@ def proxy_url(encoded_url):
 
 @app.route('/', methods=['GET'])
 def root():
-    """Root route - provides a form to encode a URL"""
-    return """
-    <html>
-    <head>
-        <title>URL Proxy</title>
-        <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
-    </head>
-    <body class="p-4">
-        <div class="container">
-            <h1 class="mb-4">URL Proxy Service</h1>
-            <p class="mb-3">Enter a URL to encode and proxy:</p>
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="input-group mb-3">
-                        <input type="text" id="urlInput" class="form-control" placeholder="https://example.com">
-                        <button class="btn btn-primary" onclick="encodeUrl()">Encode & Proxy</button>
-                    </div>
-                </div>
-            </div>
-            <div id="result" class="mt-3 d-none">
-                <h3>Proxied URL:</h3>
-                <div class="input-group mb-3">
-                    <input type="text" id="proxyUrl" class="form-control" readonly>
-                    <button class="btn btn-secondary" onclick="copyUrl()">Copy</button>
-                </div>
-                <p><a id="visitLink" href="#" class="btn btn-success mt-2">Visit Proxied Site</a></p>
-            </div>
-        </div>
-        
-        <script>
-        function encodeUrl() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (!url) {
-                alert('Please enter a valid URL');
-                return;
-            }
-            
-            fetch('/encode', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ url })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.encoded_url) {
-                    const fullUrl = window.location.origin + '/' + data.encoded_url;
-                    document.getElementById('proxyUrl').value = fullUrl;
-                    document.getElementById('visitLink').href = fullUrl;
-                    document.getElementById('result').classList.remove('d-none');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while encoding the URL');
-            });
-        }
-        
-        function copyUrl() {
-            const proxyUrl = document.getElementById('proxyUrl');
-            proxyUrl.select();
-            document.execCommand('copy');
-            alert('URL copied to clipboard!');
-        }
-        </script>
-    </body>
-    </html>
-    """
+    """Root route - simple message"""
+    return "URL Proxy API Service - Use the proper endpoint to encode and proxy URLs", 200
 
 @app.route('/encode', methods=['POST'])
 def encode_url_endpoint():
