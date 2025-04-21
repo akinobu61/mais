@@ -1,5 +1,6 @@
 import requests
 import logging
+import pyshorteners
 from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)
@@ -7,36 +8,34 @@ logger = logging.getLogger(__name__)
 # Timeout for HTTP requests (in seconds)
 REQUEST_TIMEOUT = 10
 
-def resolve_tinyurl(tiny_url_id):
+def resolve_tinyurl(short_url_id):
     """
-    Resolves a TinyURL ID to its original URL.
+    Resolves a shortened URL ID to its original URL using pyshorteners.
     
     Args:
-        tiny_url_id (str): The TinyURL identifier
+        short_url_id (str): The shortened URL identifier
         
     Returns:
         str: The resolved original URL or None if resolution fails
     """
-    tinyurl = f"https://tinyurl.com/{tiny_url_id}"
-    logger.debug(f"Resolving TinyURL: {tinyurl}")
+    # Create a complete URL with the ID
+    short_url = f"https://is.gd/{short_url_id}"
+    logger.debug(f"Resolving URL: {short_url}")
     
     try:
-        # We don't want to download the content yet, just resolve the URL
-        response = requests.head(
-            tinyurl, 
-            allow_redirects=True,
-            timeout=REQUEST_TIMEOUT
-        )
+        # Use pyshorteners to expand the short URL
+        shortener = pyshorteners.Shortener()
+        expanded_url = shortener.isgd.expand(short_url)
         
-        # If we got redirected, return the final URL
-        if response.status_code == 200:
-            return response.url
+        if expanded_url:
+            logger.debug(f"Successfully expanded URL to: {expanded_url}")
+            return expanded_url
         else:
-            logger.error(f"Failed to resolve TinyURL. Status code: {response.status_code}")
+            logger.error(f"Failed to resolve URL: {short_url}")
             return None
             
-    except requests.exceptions.RequestException as e:
-        logger.exception(f"Error resolving TinyURL: {str(e)}")
+    except Exception as e:
+        logger.exception(f"Error resolving URL with pyshorteners: {str(e)}")
         return None
 
 def fetch_content(url):
@@ -83,10 +82,10 @@ def get_proxy_url(original_url, base_domain, target_url):
     if target_url.startswith(('http://', 'https://')):
         parsed_url = urlparse(target_url)
         
-        # If it's a TinyURL, extract the ID
-        if 'tinyurl.com' in parsed_url.netloc:
-            tiny_id = parsed_url.path.strip('/')
-            return urljoin(base_domain, tiny_id)
+        # If it's a is.gd URL, extract the ID
+        if 'is.gd' in parsed_url.netloc:
+            short_id = parsed_url.path.strip('/')
+            return urljoin(base_domain, short_id)
             
         # For other domains, convert to proxy format using path
         # Remove the leading slash if it exists
