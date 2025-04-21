@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="result-container">
-    <h2>URLが生成されました</h2>
+    <h2>暗号化URLが生成されました</h2>
     
     <div class="result-box">
         <div class="result-item">
@@ -15,16 +15,8 @@
             </div>
         </div>
         
-        <div class="result-item">
-            <h3>暗号化されたプロキシURL:</h3>
-            <div class="url-display">
-                <p id="proxy-url">{{ proxy_url }}</p>
-                <button class="copy-btn" onclick="copyToClipboard('proxy-url')">コピー</button>
-            </div>
-        </div>
-        
-        <div class="result-item">
-            <h3>短縮URL (TinyURL):</h3>
+        <div class="result-item highlight-item">
+            <h3>暗号化された短縮URL (TinyURL):</h3>
             <div class="url-display">
                 <p id="tiny-url">{{ tiny_url }}</p>
                 <button class="copy-btn" onclick="copyToClipboard('tiny-url')">コピー</button>
