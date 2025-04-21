@@ -114,8 +114,8 @@ def get_proxy_url(original_url, base_domain, target_url):
     Returns:
         str: The proxied URL
     """
-    # Data URLsはそのまま返す
-    if target_url.startswith('data:'):
+    # 特殊なURLスキームはそのまま返す
+    if target_url.startswith(('data:', 'javascript:', 'about:', 'blob:', 'mailto:')):
         return target_url
         
     from url_crypto import encode_url
