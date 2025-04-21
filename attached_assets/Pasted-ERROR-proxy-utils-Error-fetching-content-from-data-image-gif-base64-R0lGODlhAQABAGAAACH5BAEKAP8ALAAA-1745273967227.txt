@@ -1,0 +1,48 @@
+ERROR:proxy_utils:Error fetching content from data:image/gif;base64,R0lGODlhAQABAGAAACH5BAEKAP8ALAAAAAABAAEAAAgEAP8FBAA7: No connection adapters were found for 'data:image/gif;base64,R0lGODlhAQABAGAAACH5BAEKAP8ALAAAAAABAAEAAAgEAP8FBAA7'
+Traceback (most recent call last):
+  File "/home/runner/workspace/proxy_utils.py", line 51, in fetch_content
+    response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT, allow_redirects=True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/sessions.py", line 697, in send
+    adapter = self.get_adapter(url=request.url)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/requests/sessions.py", line 792, in get_adapter
+    raise InvalidSchema(f"No connection adapters were found for {url!r}")
+requests.exceptions.InvalidSchema: No connection adapters were found for 'data:image/gif;base64,R0lGODlhAQABAGAAACH5BAEKAP8ALAAAAAABAAEAAAgEAP8FBAA7'
+ERROR:app:Error fetching content: 500
+DEBUG:url_crypto:エンコードされたID: 3cab7271aHR0cHMlM0EvL3d3dy52YWx1ZS1kb21haW4uY29tL3BhcnRzL2pzL3N3aXRjaC5zY3JlZW4uanM
+DEBUG:url_crypto:デコード結果: https://www.value-domain.com/parts/js/switch.screen.js
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): www.value-domain.com:443
+DEBUG:urllib3.connectionpool:https://www.value-domain.com:443 "GET /parts/js/switch.screen.js HTTP/1.1" 200 299
+DEBUG:url_crypto:エンコードされたID: abd62c7caHR0cHMlM0EvL3RyYW5zbGF0ZS5nb29nbGUuY29tL3RyYW5zbGF0ZV9hL2VsZW1lbnQuanMlM0ZjYiUzRGdvb2dsZVRyYW5zbGF0ZUVsZW1lbnRJbml0
+DEBUG:url_crypto:デコード結果: https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): translate.google.com:443
+DEBUG:urllib3.connectionpool:https://translate.google.com:443 "GET /translate_a/element.js?cb=googleTranslateElementInit HTTP/1.1" 200 None
+DEBUG:url_crypto:エンコードされたID: f01c12d9aHR0cHMlM0EvL3d3dy52YWx1ZS1kb21haW4uY29tL2Fzc2V0cy9pbWcvY29tbW9uL2hkX2xvZ28uc3Zn
+DEBUG:url_crypto:デコード結果: https://www.value-domain.com/assets/img/common/hd_logo.svg
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): www.value-domain.com:443
+DEBUG:urllib3.connectionpool:https://www.value-domain.com:443 "GET /assets/img/common/hd_logo.svg HTTP/1.1" 200 None
+DEBUG:url_crypto:エンコードされたID: 8da4913eaHR0cHMlM0EvL2NhY2hlLmltZy5nbW8uanAvZ21vL3NlY3VyaXR5L3NjcmlwdC5taW4uanM
+DEBUG:url_crypto:デコード結果: https://cache.img.gmo.jp/gmo/security/script.min.js
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): cache.img.gmo.jp:443
+DEBUG:urllib3.connectionpool:https://cache.img.gmo.jp:443 "GET /gmo/security/script.min.js HTTP/1.1" 200 2325
+DEBUG:url_crypto:エンコードされたID: fd34bdbfaHR0cHMlM0EvL2dtby1jeWJlcnNlY3VyaXR5LmNvbS9zaXRlc2VhbC9zaXRlc2VhbC5qcw
+DEBUG:url_crypto:デコード結果: https://gmo-cybersecurity.com/siteseal/siteseal.js
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): gmo-cybersecurity.com:443
+DEBUG:urllib3.connectionpool:https://gmo-cybersecurity.com:443 "GET /siteseal/siteseal.js HTTP/1.1" 200 2637
+DEBUG:url_crypto:エンコードされたID: 97b84f13aHR0cHMlM0EvL2NhY2hlLmltZy5nbW8uanAvZ21vL2Zvb3Rlci9zY3JpcHQubWluLmpz
+DEBUG:url_crypto:デコード結果: https://cache.img.gmo.jp/gmo/footer/script.min.js
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): cache.img.gmo.jp:443
+DEBUG:urllib3.connectionpool:https://cache.img.gmo.jp:443 "GET /gmo/footer/script.min.js HTTP/1.1" 200 5422
+DEBUG:url_crypto:エンコードされたID: a018a5b2aHR0cHMlM0EvL2NhY2hlLmltZy5nbW8uanAvZ21vL2hlYWRlci9zY3JpcHQubWluLmpz
+DEBUG:url_crypto:デコード結果: https://cache.img.gmo.jp/gmo/header/script.min.js
+DEBUG:urllib3.connectionpool

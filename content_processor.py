@@ -34,9 +34,10 @@ def process_content(content, original_url, base_domain):
         for link_tag in soup.find_all('link', href=True):
             link_tag['href'] = get_proxy_url(original_url, base_domain, link_tag['href'])
             
-        # Process images
+        # Process images (data: URLはそのまま保持)
         for img_tag in soup.find_all('img', src=True):
-            img_tag['src'] = get_proxy_url(original_url, base_domain, img_tag['src'])
+            if not img_tag['src'].startswith('data:'):
+                img_tag['src'] = get_proxy_url(original_url, base_domain, img_tag['src'])
             
         # Process scripts
         for script_tag in soup.find_all('script', src=True):
