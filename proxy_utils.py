@@ -1,48 +1,87 @@
 import requests
 import logging
-from urllib.parse import urljoin, urlparse
+import base64
+import hashlib
+from urllib.parse import urljoin, urlparse, quote, unquote
 
 logger = logging.getLogger(__name__)
 
 # Timeout for HTTP requests (in seconds)
 REQUEST_TIMEOUT = 10
 
-def resolve_tinyurl(short_url_id):
+# Secret key for URL encoding/decoding (keep this secure in a production environment)
+URL_ENCODING_KEY = "mySecretKey123"  # In production, this should be in environment variables
+
+def encode_url(original_url):
     """
-    Resolves a shortened URL ID to its original URL using direct HTTP requests.
+    Encodes a URL using a custom algorithm to create a shorter representation.
     
     Args:
-        short_url_id (str): The shortened URL identifier
+        original_url (str): The original URL to encode
         
     Returns:
-        str: The resolved original URL or None if resolution fails
+        str: The encoded URL string
     """
-    # Create a complete URL with the ID
-    short_url = f"https://is.gd/{short_url_id}"
-    logger.debug(f"Resolving URL: {short_url}")
+    # First, URL-quote the original URL to handle special characters
+    safe_url = quote(original_url)
     
-    try:
-        # Just do a HEAD request with allow_redirects=True to follow redirects
-        # This is more reliable than using pyshorteners for expansion
-        response = requests.head(
-            short_url,
-            allow_redirects=True,
-            timeout=REQUEST_TIMEOUT,
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        )
+    # Create a simple encoding by using base64 
+    encoded = base64.urlsafe_b64encode(safe_url.encode()).decode()
+    
+    # Remove padding characters (=) as they're not URL-safe
+    encoded = encoded.rstrip("=")
+    
+    # Add a simple hash for validation (first 8 chars of the sha256 hash)
+    hash_signature = hashlib.sha256((encoded + URL_ENCODING_KEY).encode()).hexdigest()[:8]
+    
+    # Combine the hash and encoded string
+    result = f"{hash_signature}{encoded}"
+    
+    logger.debug(f"Encoded URL '{original_url}' to '{result}'")
+    return result
+
+def decode_url(encoded_id):
+    """
+    Decodes an encoded URL ID back to its original URL.
+    
+    Args:
+        encoded_id (str): The encoded URL identifier
         
-        # If the status code is successful (2xx), return the final URL after redirects
-        if 200 <= response.status_code < 300:
-            logger.debug(f"Successfully expanded URL to: {response.url}")
-            return response.url
-        else:
-            logger.error(f"Failed to resolve URL: {short_url}, status code: {response.status_code}")
+    Returns:
+        str: The decoded original URL or None if decoding fails
+    """
+    try:
+        if len(encoded_id) < 8:
+            logger.error(f"Invalid encoded ID (too short): {encoded_id}")
             return None
             
-    except requests.exceptions.RequestException as e:
-        logger.exception(f"Error resolving URL: {str(e)}")
+        # Extract the hash and encoded parts
+        hash_part = encoded_id[:8]
+        encoded_part = encoded_id[8:]
+        
+        # Validate the hash
+        calculated_hash = hashlib.sha256((encoded_part + URL_ENCODING_KEY).encode()).hexdigest()[:8]
+        if calculated_hash != hash_part:
+            logger.error(f"Hash validation failed for encoded ID: {encoded_id}")
+            return None
+        
+        # Add padding back if needed
+        padding_needed = len(encoded_part) % 4
+        if padding_needed:
+            encoded_part += "=" * (4 - padding_needed)
+        
+        # Decode the base64 part
+        decoded_bytes = base64.urlsafe_b64decode(encoded_part)
+        safe_url = decoded_bytes.decode()
+        
+        # URL-unquote to get the original URL
+        original_url = unquote(safe_url)
+        
+        logger.debug(f"Decoded ID '{encoded_id}' to URL '{original_url}'")
+        return original_url
+        
+    except Exception as e:
+        logger.exception(f"Error decoding URL ID: {str(e)}")
         return None
 
 def fetch_content(url):
@@ -75,7 +114,7 @@ def fetch_content(url):
 
 def get_proxy_url(original_url, base_domain, target_url):
     """
-    Converts a URL from the original site to a proxied URL.
+    Converts a URL from the original site to a proxied URL using our custom encoding.
     
     Args:
         original_url (str): The original URL that we're proxying
@@ -85,30 +124,15 @@ def get_proxy_url(original_url, base_domain, target_url):
     Returns:
         str: The proxied URL
     """
-    # If it's an absolute URL with http/https
-    if target_url.startswith(('http://', 'https://')):
-        parsed_url = urlparse(target_url)
-        
-        # If it's a is.gd URL, extract the ID
-        if 'is.gd' in parsed_url.netloc:
-            short_id = parsed_url.path.strip('/')
-            return urljoin(base_domain, short_id)
-            
-        # For other domains, convert to proxy format using path
-        # Remove the leading slash if it exists
-        path = parsed_url.path
-        if path.startswith('/'):
-            path = path[1:]
-        
-        return urljoin(base_domain, path)
-        
-    # For relative URLs, join with the original URL first, then convert
-    absolute_url = urljoin(original_url, target_url)
-    parsed = urlparse(absolute_url)
+    # If it's a relative URL, make it absolute first
+    if not target_url.startswith(('http://', 'https://')):
+        target_url = urljoin(original_url, target_url)
     
-    # Get the path and remove leading slash
-    path = parsed.path
-    if path.startswith('/'):
-        path = path[1:]
-        
-    return urljoin(base_domain, path)
+    # Use our custom encoding to convert the URL to an encoded form
+    encoded_id = encode_url(target_url)
+    
+    # Create the proxy URL by joining the base domain with the encoded ID
+    proxy_url = urljoin(base_domain, encoded_id)
+    
+    logger.debug(f"Converted '{target_url}' to proxy URL '{proxy_url}'")
+    return proxy_url

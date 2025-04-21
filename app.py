@@ -1,7 +1,8 @@
 import os
 import logging
-from flask import Flask, request, Response
-from proxy_utils import resolve_tinyurl, fetch_content
+import json
+from flask import Flask, request, Response, jsonify
+from proxy_utils import decode_url, fetch_content, encode_url
 from content_processor import process_content
 
 # Configure logging
@@ -12,26 +13,26 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
 
-@app.route('/<path:tiny_url_id>', methods=['GET'])
-def proxy_tinyurl(tiny_url_id):
+@app.route('/<path:encoded_url>', methods=['GET'])
+def proxy_url(encoded_url):
     """
-    Main route handler for proxying TinyURL content
-    Accepts tiny_url_id and fetches content through the proxy
+    Main route handler for proxying content through encoded URLs
+    Accepts encoded_url and fetches content through the proxy
     """
-    logger.debug(f"Received request for tiny URL ID: {tiny_url_id}")
+    logger.debug(f"Received request for encoded URL: {encoded_url}")
     
     # If the URL contains query parameters, extract and keep them
     query_string = request.query_string.decode() if request.query_string else ""
     query_appendix = f"?{query_string}" if query_string else ""
     
     try:
-        # Resolve the TinyURL to get the original URL
-        original_url = resolve_tinyurl(tiny_url_id)
+        # Decode the encoded URL to get the original URL
+        original_url = decode_url(encoded_url)
         if not original_url:
-            logger.error(f"Failed to resolve TinyURL for ID: {tiny_url_id}")
-            return "Failed to resolve the TinyURL. The link might be invalid or no longer available.", 404
+            logger.error(f"Failed to decode URL ID: {encoded_url}")
+            return "Failed to decode the URL. The link might be invalid or corrupted.", 404
         
-        logger.debug(f"Resolved to original URL: {original_url}")
+        logger.debug(f"Decoded to original URL: {original_url}")
         
         # Add query parameters if they exist
         if query_appendix:
@@ -63,8 +64,104 @@ def proxy_tinyurl(tiny_url_id):
 
 @app.route('/', methods=['GET'])
 def root():
-    """Root route - returns a simple message since we need a TinyURL ID"""
-    return "Please provide a TinyURL ID in the URL (domain/TinyURLID)", 400
+    """Root route - provides a form to encode a URL"""
+    return """
+    <html>
+    <head>
+        <title>URL Proxy</title>
+        <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    </head>
+    <body class="p-4">
+        <div class="container">
+            <h1 class="mb-4">URL Proxy Service</h1>
+            <p class="mb-3">Enter a URL to encode and proxy:</p>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group mb-3">
+                        <input type="text" id="urlInput" class="form-control" placeholder="https://example.com">
+                        <button class="btn btn-primary" onclick="encodeUrl()">Encode & Proxy</button>
+                    </div>
+                </div>
+            </div>
+            <div id="result" class="mt-3 d-none">
+                <h3>Proxied URL:</h3>
+                <div class="input-group mb-3">
+                    <input type="text" id="proxyUrl" class="form-control" readonly>
+                    <button class="btn btn-secondary" onclick="copyUrl()">Copy</button>
+                </div>
+                <p><a id="visitLink" href="#" class="btn btn-success mt-2">Visit Proxied Site</a></p>
+            </div>
+        </div>
+        
+        <script>
+        function encodeUrl() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            fetch('/encode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.encoded_url) {
+                    const fullUrl = window.location.origin + '/' + data.encoded_url;
+                    document.getElementById('proxyUrl').value = fullUrl;
+                    document.getElementById('visitLink').href = fullUrl;
+                    document.getElementById('result').classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while encoding the URL');
+            });
+        }
+        
+        function copyUrl() {
+            const proxyUrl = document.getElementById('proxyUrl');
+            proxyUrl.select();
+            document.execCommand('copy');
+            alert('URL copied to clipboard!');
+        }
+        </script>
+    </body>
+    </html>
+    """
+
+@app.route('/encode', methods=['POST'])
+def encode_url_endpoint():
+    """
+    API endpoint to encode a URL
+    Accepts a JSON POST with a 'url' parameter
+    Returns a JSON response with the encoded URL
+    """
+    try:
+        # Get the URL from the JSON body
+        data = request.get_json()
+        if not data or 'url' not in data:
+            return jsonify({'error': 'URL parameter is required'}), 400
+            
+        url = data['url']
+        
+        # Make sure URL has a scheme
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+            
+        # Encode the URL
+        encoded = encode_url(url)
+        
+        # Return the encoded URL
+        return jsonify({'encoded_url': encoded})
+        
+    except Exception as e:
+        logger.exception(f"Error encoding URL: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # Error handlers
 @app.errorhandler(404)
