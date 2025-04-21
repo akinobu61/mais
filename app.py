@@ -66,11 +66,6 @@ def root():
     """Root route - returns a simple message since we need a TinyURL ID"""
     return "Please provide a TinyURL ID in the URL (domain/TinyURLID)", 400
 
-@app.route('/favicon.ico')
-def favicon():
-    """Handle favicon requests"""
-    return "", 204  # No content response
-
 # Error handlers
 @app.errorhandler(404)
 def page_not_found(e):

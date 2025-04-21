@@ -79,30 +79,6 @@ def get_proxy_url(original_url, base_domain, target_url):
     Returns:
         str: The proxied URL
     """
-    # Special case for data URLs (e.g., data:image/png;base64,...)
-    if target_url.startswith('data:'):
-        return target_url
-        
-    # Special case for javascript URLs
-    if target_url.startswith('javascript:'):
-        return target_url
-        
-    # Special case for anchor links
-    if target_url.startswith('#'):
-        return target_url
-
-    # Special case for resources starting with _assets/
-    if target_url.startswith('_assets/'):
-        # Use the original domain to create a direct path for these assets
-        original_domain = urlparse(original_url).netloc
-        original_scheme = urlparse(original_url).scheme
-        # Create direct URL to the asset on the original domain
-        direct_url = f"{original_scheme}://{original_domain}/{target_url}"
-        
-        # Extract path without _assets/ prefix
-        path = target_url
-        return urljoin(base_domain, path)
-    
     # If it's an absolute URL with http/https
     if target_url.startswith(('http://', 'https://')):
         parsed_url = urlparse(target_url)
@@ -112,23 +88,12 @@ def get_proxy_url(original_url, base_domain, target_url):
             tiny_id = parsed_url.path.strip('/')
             return urljoin(base_domain, tiny_id)
             
-        # Check if the URL is on the same domain as the original URL
-        original_domain = urlparse(original_url).netloc
-        if parsed_url.netloc == original_domain:
-            # For same domain, use path directly
-            path = parsed_url.path
-            if path.startswith('/'):
-                path = path[1:]
-            return urljoin(base_domain, path)
-            
         # For other domains, convert to proxy format using path
         # Remove the leading slash if it exists
         path = parsed_url.path
         if path.startswith('/'):
             path = path[1:]
         
-        # For external URLs, we could either proxy them or return them directly
-        # Here we proxy them through our service
         return urljoin(base_domain, path)
         
     # For relative URLs, join with the original URL first, then convert
