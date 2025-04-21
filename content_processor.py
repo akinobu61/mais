@@ -19,6 +19,10 @@ def process_content(content, original_url, base_domain):
         bytes: The processed HTML content
     """
     try:
+        # Ensure base_domain uses HTTPS
+        if base_domain.startswith('http:'):
+            base_domain = base_domain.replace('http:', 'https:', 1)
+            
         # Parse the content with BeautifulSoup
         soup = BeautifulSoup(content, 'html.parser')
         
@@ -41,7 +45,23 @@ def process_content(content, original_url, base_domain):
         # Process form actions
         for form_tag in soup.find_all('form', action=True):
             form_tag['action'] = get_proxy_url(original_url, base_domain, form_tag['action'])
+            
+        # Add Content-Security-Policy meta tag to help prevent mixed content
+        meta_csp = soup.new_tag('meta')
+        meta_csp.attrs['http-equiv'] = 'Content-Security-Policy'
+        meta_csp.attrs['content'] = "upgrade-insecure-requests"
         
+        # Find head tag and insert meta tag
+        head_tag = soup.find('head')
+        if head_tag:
+            head_tag.insert(0, meta_csp)
+        else:
+            # If no head tag, create one and add it to the beginning of the document
+            head_tag = soup.new_tag('head')
+            head_tag.append(meta_csp)
+            if soup.html:
+                soup.html.insert(0, head_tag)
+                
         # Return the modified content
         return str(soup).encode()
     

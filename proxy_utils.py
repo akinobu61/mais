@@ -18,6 +18,28 @@ def fetch_content(url):
         tuple: (content, status_code, content_type)
     """
     try:
+        # Try to upgrade HTTP to HTTPS if needed
+        if url.startswith('http:'):
+            https_url = url.replace('http:', 'https:', 1)
+            logger.debug(f"Trying to upgrade HTTP URL to HTTPS: {https_url}")
+            
+            try:
+                # First try with HTTPS
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+                }
+                
+                response = requests.get(https_url, headers=headers, timeout=REQUEST_TIMEOUT, allow_redirects=True)
+                
+                # If successful, use the HTTPS URL
+                url = https_url
+                
+            except requests.RequestException:
+                # If HTTPS failed, continue with the original HTTP URL
+                logger.debug(f"HTTPS upgrade failed, falling back to original URL: {url}")
+                
         # Set up headers to mimic a browser
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -43,7 +65,7 @@ def get_proxy_url(original_url, base_domain, target_url):
     
     Args:
         original_url (str): The original URL that we're proxying
-        base_domain (str): The domain of our proxy (e.g., 'http://example.com/')
+        base_domain (str): The base domain of our proxy (e.g., 'http://example.com/')
         target_url (str): The URL to convert to a proxied URL
         
     Returns:
@@ -57,6 +79,10 @@ def get_proxy_url(original_url, base_domain, target_url):
     
     # Use our custom encoding to convert the URL to an encoded form
     encoded_id = encode_url(target_url)
+    
+    # Ensure base_domain uses HTTPS
+    if base_domain.startswith('http:'):
+        base_domain = base_domain.replace('http:', 'https:', 1)
     
     # Create the proxy URL by joining the base domain with the encoded ID
     proxy_url = urljoin(base_domain, encoded_id)
