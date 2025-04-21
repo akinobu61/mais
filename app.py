@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, request, Response, render_template
+from flask import Flask, request, Response
 from proxy_utils import resolve_tinyurl, fetch_content
 from content_processor import process_content
 
@@ -29,7 +29,7 @@ def proxy_tinyurl(tiny_url_id):
         original_url = resolve_tinyurl(tiny_url_id)
         if not original_url:
             logger.error(f"Failed to resolve TinyURL for ID: {tiny_url_id}")
-            return render_template('error.html', error="Failed to resolve the TinyURL. The link might be invalid or no longer available."), 404
+            return "Failed to resolve the TinyURL. The link might be invalid or no longer available.", 404
         
         logger.debug(f"Resolved to original URL: {original_url}")
         
@@ -42,7 +42,7 @@ def proxy_tinyurl(tiny_url_id):
         
         if status_code >= 400:
             logger.error(f"Error fetching content: {status_code}")
-            return render_template('error.html', error=f"Error fetching content: HTTP {status_code}"), status_code
+            return f"Error fetching content: HTTP {status_code}", status_code
             
         # Process content if it's HTML
         if content_type and 'text/html' in content_type:
@@ -59,18 +59,18 @@ def proxy_tinyurl(tiny_url_id):
         
     except Exception as e:
         logger.exception(f"Error processing request: {str(e)}")
-        return render_template('error.html', error=f"An error occurred while processing your request: {str(e)}"), 500
+        return f"An error occurred while processing your request: {str(e)}", 500
 
 @app.route('/', methods=['GET'])
 def root():
-    """Root route - returns an error message since we need a TinyURL ID"""
-    return render_template('error.html', error="Please provide a TinyURL ID in the URL."), 400
+    """Root route - returns a simple message since we need a TinyURL ID"""
+    return "Please provide a TinyURL ID in the URL (domain/TinyURLID)", 400
 
 # Error handlers
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('error.html', error="Page not found."), 404
+    return "Page not found.", 404
 
 @app.errorhandler(500)
 def server_error(e):
-    return render_template('error.html', error="Internal server error."), 500
+    return "Internal server error.", 500
