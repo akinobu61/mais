@@ -1,6 +1,6 @@
 import logging
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from proxy_utils import get_proxy_url
 
 logger = logging.getLogger(__name__)
@@ -44,10 +44,28 @@ def process_content(content, original_url, base_domain):
         # Process iframe sources
         for iframe in soup.find_all('iframe', src=True):
             iframe['src'] = get_proxy_url(original_url, base_domain, iframe['src'])
-        
-        # Add base tag to ensure all relative URLs are resolved correctly
+            
+        # Process other resources with srcset attribute
+        for elem in soup.find_all(srcset=True):
+            elem['srcset'] = get_proxy_url(original_url, base_domain, elem['srcset'])
+            
+        # Add jQuery if it doesn't exist (to fix "$ is not defined" errors)
         head = soup.find('head')
         if head:
+            # Check if jQuery already exists
+            jquery_exists = False
+            for script in soup.find_all('script', src=True):
+                if 'jquery' in script['src'].lower():
+                    jquery_exists = True
+                    break
+                    
+            if not jquery_exists:
+                jquery_script = soup.new_tag('script')
+                jquery_script['src'] = 'https://code.jquery.com/jquery-3.6.0.min.js'
+                jquery_script['integrity'] = 'sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4='
+                jquery_script['crossorigin'] = 'anonymous'
+                head.insert(0, jquery_script)
+            
             # Check if base tag already exists
             base_tag = head.find('base')
             if base_tag:
@@ -62,6 +80,20 @@ def process_content(content, original_url, base_domain):
         info_div['data-original-url'] = original_url
         if soup.body:
             soup.body.append(info_div)
+            
+        # Fix any direct reference to _assets in style attributes
+        for elem in soup.find_all(lambda tag: tag.has_attr('style')):
+            try:
+                style = elem['style']
+                if '_assets/' in style:
+                    # Replace relative _assets paths with absolute paths
+                    domain = urlparse(original_url).netloc
+                    protocol = urlparse(original_url).scheme
+                    new_style = style.replace('_assets/', f'{protocol}://{domain}/_assets/')
+                    elem['style'] = new_style
+            except (TypeError, AttributeError):
+                # Skip elements that aren't Tag objects or don't have valid style attributes
+                continue
         
         # Return the modified HTML
         return str(soup).encode('utf-8')
