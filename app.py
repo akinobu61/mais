@@ -67,10 +67,7 @@ def create_short_url():
             # Get the TinyURL shortened version of the proxy URL
             tiny_url = shortener.tinyurl.short(proxy_url)
             
-            return render_template('result.html', 
-                                   original_url=original_url,
-                                   proxy_url=proxy_url,
-                                   tiny_url=tiny_url)
+            return render_template('result.html', tiny_url=tiny_url)
         
         # Encode the URL
         encoded_id = encode_url(original_url)
@@ -86,10 +83,7 @@ def create_short_url():
         # Get the TinyURL shortened version of the proxy URL
         tiny_url = shortener.tinyurl.short(proxy_url)
         
-        return render_template('result.html', 
-                               original_url=original_url,
-                               proxy_url=proxy_url,
-                               tiny_url=tiny_url)
+        return render_template('result.html', tiny_url=tiny_url)
         
     except Exception as e:
         logger.exception(f"Error creating short URL: {str(e)}")

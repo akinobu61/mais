@@ -80,8 +80,8 @@ def get_proxy_url(original_url, base_domain, target_url):
     # Use our custom encoding to convert the URL to an encoded form
     encoded_id = encode_url(target_url)
     
-    # Ensure base_domain uses HTTPS
-    if base_domain.startswith('http:'):
+    # Ensure base_domain uses HTTPS only in production environments
+    if base_domain.startswith('http:') and not base_domain.startswith('http://localhost') and not base_domain.startswith('http://127.0.0.1'):
         base_domain = base_domain.replace('http:', 'https:', 1)
     
     # Create the proxy URL by joining the base domain with the encoded ID

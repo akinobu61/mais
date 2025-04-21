@@ -26,7 +26,7 @@ function copyToClipboard(elementId) {
     const text = document.getElementById(elementId).innerText;
     navigator.clipboard.writeText(text).then(function() {
         // 成功時の処理
-        const btn = event.target;
+        const btn = document.querySelector(`button[onclick="copyToClipboard('${elementId}')"]`);
         const originalText = btn.innerText;
         btn.innerText = "コピー完了!";
         setTimeout(function() {

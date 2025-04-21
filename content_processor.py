@@ -19,8 +19,8 @@ def process_content(content, original_url, base_domain):
         bytes: The processed HTML content
     """
     try:
-        # Ensure base_domain uses HTTPS
-        if base_domain.startswith('http:'):
+        # Ensure base_domain uses HTTPS only in production environments
+        if base_domain.startswith('http:') and not base_domain.startswith('http://localhost') and not base_domain.startswith('http://127.0.0.1'):
             base_domain = base_domain.replace('http:', 'https:', 1)
             
         # Parse the content with BeautifulSoup
