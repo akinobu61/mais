@@ -94,9 +94,13 @@ def create_short_url():
         return render_template('index.html', error=f'エラーが発生しました: {str(e)}')
 
 @app.route('/<path:encoded_id>', methods=['GET'])
-def redirect_to_original(encoded_id):
-    """Redirect to the original URL from an encoded ID"""
+def show_encoded_url(encoded_id):
+    """Show encoded URL information without redirecting"""
     try:
+        # Check if this is a create route
+        if encoded_id == 'create':
+            return redirect(url_for('index'))
+            
         # Check if the encoded ID exists in our database
         url_mapping = URLMapping.query.filter_by(encoded_id=encoded_id).first()
         
@@ -104,17 +108,25 @@ def redirect_to_original(encoded_id):
             # Increment access count
             url_mapping.access_count += 1
             db.session.commit()
-            return redirect(url_mapping.original_url)
+            
+            # Show URL info without redirecting
+            return render_template('url_info.html', 
+                                  url_mapping=url_mapping, 
+                                  encoded_url=request.host_url + encoded_id)
         
         # If not in database, try to decode it directly
         original_url = decode_url(encoded_id)
         if original_url:
-            return redirect(original_url)
+            # Show decoded URL info without redirecting
+            return render_template('decoded_info.html', 
+                                  original_url=original_url, 
+                                  encoded_id=encoded_id,
+                                  encoded_url=request.host_url + encoded_id)
         
         return render_template('error.html', message='無効なURLまたはリンクが見つかりません'), 404
         
     except Exception as e:
-        logger.exception(f"Error redirecting to original URL: {str(e)}")
+        logger.exception(f"Error displaying URL info: {str(e)}")
         return render_template('error.html', message=f'エラーが発生しました: {str(e)}'), 500
 
 @app.route('/api/encode', methods=['POST'])

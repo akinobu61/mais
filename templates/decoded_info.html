@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}デコードされたURL情報{% endblock %}
+
+{% block content %}
+<div class="info-container">
+    <h2>デコードされたURL情報</h2>
+    
+    <div class="info-box">
+        <div class="info-item">
+            <h3>元のURL:</h3>
+            <div class="url-display">
+                <p id="original-url">{{ original_url }}</p>
+                <button class="copy-btn" onclick="copyToClipboard('original-url')">コピー</button>
+            </div>
+        </div>
+        
+        <div class="info-item">
+            <h3>暗号化されたID:</h3>
+            <p>{{ encoded_id }}</p>
+        </div>
+        
+        <div class="info-item">
+            <h3>暗号化されたURL:</h3>
+            <div class="url-display">
+                <p id="encoded-url">{{ encoded_url }}</p>
+                <button class="copy-btn" onclick="copyToClipboard('encoded-url')">コピー</button>
+            </div>
+        </div>
+        
+        <div class="alert-info">
+            <p>注意: このURLはデータベースに保存されていないため、アクセス履歴は記録されません。</p>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('index') }}" class="btn-back">ホームに戻る</a>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).innerText;
+    navigator.clipboard.writeText(text).then(function() {
+        // 成功時の処理
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = "コピー完了!";
+        setTimeout(function() {
+            btn.innerText = originalText;
+        }, 2000);
+    }, function() {
+        // エラー時の処理
+        alert("コピーに失敗しました。");
+    });
+}
+</script>
+{% endblock %}

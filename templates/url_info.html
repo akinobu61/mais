@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}暗号化URL情報{% endblock %}
+
+{% block content %}
+<div class="info-container">
+    <h2>暗号化されたURL情報</h2>
+    
+    <div class="info-box">
+        <div class="info-item">
+            <h3>元のURL:</h3>
+            <div class="url-display">
+                <p id="original-url">{{ url_mapping.original_url }}</p>
+                <button class="copy-btn" onclick="copyToClipboard('original-url')">コピー</button>
+            </div>
+        </div>
+        
+        <div class="info-item">
+            <h3>暗号化されたURL:</h3>
+            <div class="url-display">
+                <p id="encoded-url">{{ encoded_url }}</p>
+                <button class="copy-btn" onclick="copyToClipboard('encoded-url')">コピー</button>
+            </div>
+        </div>
+        
+        <div class="info-item">
+            <h3>アクセス回数:</h3>
+            <p>{{ url_mapping.access_count }}回</p>
+        </div>
+        
+        <div class="info-item">
+            <h3>作成日時:</h3>
+            <p>{{ url_mapping.created_at.strftime('%Y年%m月%d日 %H:%M') }}</p>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('index') }}" class="btn-back">ホームに戻る</a>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).innerText;
+    navigator.clipboard.writeText(text).then(function() {
+        // 成功時の処理
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = "コピー完了!";
+        setTimeout(function() {
+            btn.innerText = originalText;
+        }, 2000);
+    }, function() {
+        // エラー時の処理
+        alert("コピーに失敗しました。");
+    });
+}
+</script>
+{% endblock %}
