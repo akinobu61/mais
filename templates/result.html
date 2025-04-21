@@ -4,38 +4,11 @@
 
 {% block content %}
 <div class="result-container">
-    <h2>暗号化URLが生成されました</h2>
-    
-    <div class="result-box">
-        <div class="result-item highlight-item">
-            <h3>短縮された暗号化URL:</h3>
-            <div class="url-display">
-                <p id="tiny-url">{{ tiny_url }}</p>
-                <button class="copy-btn" onclick="copyToClipboard('tiny-url')">コピー</button>
-            </div>
-        </div>
+    <h2>短縮URLが生成されました</h2>
+    <div class="url-info">
+        <p>元のURL: <a href="{{ original_url }}" target="_blank">{{ original_url }}</a></p>
+        <p>短縮URL: <a href="{{ tiny_url }}" target="_blank">{{ tiny_url }}</a></p>
     </div>
-    
-    <div class="action-buttons">
-        <a href="{{ url_for('index') }}" class="btn-back">新しいURLを生成</a>
-    </div>
+    <button onclick="window.location.href='/'">新しいURLを作成</button>
 </div>
-
-<script>
-function copyToClipboard(elementId) {
-    const text = document.getElementById(elementId).innerText;
-    navigator.clipboard.writeText(text).then(function() {
-        // 成功時の処理
-        const btn = document.querySelector(`button[onclick="copyToClipboard('${elementId}')"]`);
-        const originalText = btn.innerText;
-        btn.innerText = "コピー完了!";
-        setTimeout(function() {
-            btn.innerText = originalText;
-        }, 2000);
-    }, function() {
-        // エラー時の処理
-        alert("コピーに失敗しました。");
-    });
-}
-</script>
 {% endblock %}
